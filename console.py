@@ -1,5 +1,9 @@
 #!/usr/bin/python3
-""" Console Module """
+
+"""Console Module.
+This is the entry point of our command interpreter.
+"""
+
 import cmd
 import sys
 from models.base_model import BaseModel
@@ -13,32 +17,33 @@ from models.review import Review
 
 
 class HBNBCommand(cmd.Cmd):
-    """ Contains the functionality for the HBNB console"""
+
+    """ Contains the functionality for the HBNB console.
+    """
 
     # determines prompt for interactive/non-interactive modes
     prompt = '(hbnb) ' if sys.__stdin__.isatty() else ''
 
     classes = {
-               'BaseModel': BaseModel, 'User': User, 'Place': Place,
-               'State': State, 'City': City, 'Amenity': Amenity,
-               'Review': Review
-              }
+        'BaseModel': BaseModel, 'User': User, 'Place': Place,
+        'State': State, 'City': City, 'Amenity': Amenity,
+        'Review': Review
+    }
     dot_cmds = ['all', 'count', 'show', 'destroy', 'update']
     types = {
-             'number_rooms': int, 'number_bathrooms': int,
-             'max_guest': int, 'price_by_night': int,
-             'latitude': float, 'longitude': float
-            }
+        'number_rooms': int, 'number_bathrooms': int,
+        'max_guest': int, 'price_by_night': int,
+        'latitude': float, 'longitude': float
+    }
 
     def preloop(self):
-        """Prints if isatty is falseee"""
+        """Prints if isatty is false
+        """
         if not sys.__stdin__.isatty():
             print('(hbnb)')
 
     def precmd(self, line):
-      
         """Reformat command line for advanced command syntax.
-
         Usage: <class name>.<command>([<id> [<*args> or <**kwargs>]])
         (Brackets denote optional fields in usage example.)
         """
@@ -89,7 +94,6 @@ class HBNBCommand(cmd.Cmd):
 
     def postcmd(self, stop, line):
         """Prints if isatty is false"""
-  
         if not sys.__stdin__.isatty():
             print('(hbnb) ', end='')
         return stop
@@ -116,21 +120,56 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     def do_create(self, args):
-        """ Create an object of any class"""
-        
-        if not args:
+        """ Create an object of any class
+        """
+        try:
+            class_name = args.split(" ")[0]
+        except IndexError:
+            pass
+
+        if not class_name:
+            # check if class_name is missing in command arguments
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+        elif class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
+
+        # Split argument into a list containing key=value pairs e.g.
+        # create Place city_id="0001" user_id="0001" name="My_little_house" etc
+        all_list = args.split(" ")
+        # create new instance of specified class
+        new_instance = eval(class_name)()
+        """
+        Iterate through remaining args in all_list and
+        split each argument at each index by the eqaulity sign,
+        then go on to typecast it into a tuple
+        and then unpack the tuple into variables key & value since
+        each arg will consist of a key & value pair.
+        """
+        for i in range(1, len(all_list)):
+            key, value = tuple(all_list[i].split("="))
+            # check if value starts with double quote to identify string
+            if value.startswith('"'):
+                # strip quotes off and replace underscore with space
+                value = value.strip('"').replace('_', ' ')
+            else:
+                # try evaluating value if it doesn't start with quote int/float
+                try:
+                    value = eval(value)
+                except Exception:
+                    print(f"** {value} could not be evaluated **")
+                    pass
+            # check if new_instance has attr of key, set value if it does
+            if hasattr(new_instance, key):
+                setattr(new_instance, key, value)
+
+        storage.new(new_instance)
         print(new_instance.id)
-        storage.save()
+        new_instance.save()
 
     def help_create(self):
-        """ Hel information for the create method """
+        """ Help information for the create method """
         print("Creates a class of any type")
         print("[Usage]: create <className>\n")
 
@@ -190,7 +229,7 @@ class HBNBCommand(cmd.Cmd):
         key = c_name + "." + c_id
 
         try:
-            del(storage.all()[key])
+            del (storage.all()[key])
             storage.save()
         except KeyError:
             print("** no instance found **")
@@ -322,6 +361,7 @@ class HBNBCommand(cmd.Cmd):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
