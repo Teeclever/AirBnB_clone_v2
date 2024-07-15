@@ -1,38 +1,27 @@
 #!/usr/bin/env bash
-# A script that sets up a web server for deployment of web_static.
+# a Bash script that sets up your web servers for the deployment of web_static
 
+# Install Nginx if not already installed
 sudo apt-get update
-sudo apt-get install -y nginx
+sudo apt-get -y install nginx
 
-mkdir -p /data/web_static/releases/test/
-mkdir -p /data/web_static/shared/
-echo "Hello World!" > /data/web_static/releases/test/index.html
-ln -sf /data/web_static/releases/test/ /data/web_static/current
+# Create necessary folders
+sudo mkdir -p /data/web_static/releases/test /data/web_static/shared
 
-chown -R ubuntu /data/
-chgrp -R ubuntu /data/
+# Create fake HTML file
+echo "<html><head></head><body>Holberton School</body></html>" | sudo tee /data/web_static/releases/test/index.html
 
-printf %s "server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    add_header X-Served-By $HOSTNAME;
-    root   /var/www/html;
-    index  index.html index.htm;
+# Create symbolic link
+sudo ln -sf /data/web_static/releases/test/ /data/web_static/current
 
-    location /hbnb_static {
-        alias /data/web_static/current;
-        index index.html index.htm;
-    }
+# Set ownership
+sudo chown -R ubuntu:ubuntu /data/
 
-    location /redirect_me {
-        return 301 http://youtube.com/;
-    }
+# Update Nginx configuration
+sudo sed -i 's|^.*server_name.*$|&\n\n\tlocation /hbnb_static {\n\t\talias /data/web_static/current/;\n\t}\n|' /etc/nginx/sites-available/default
 
-    error_page 404 /404.html;
-    location /404 {
-      root /var/www/html;
-      internal;
-    }
-}" > /etc/nginx/sites-available/default
 
-service nginx restart
+# Restart Nginx
+sudo service nginx restart
+
+exit 0

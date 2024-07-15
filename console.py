@@ -1,9 +1,5 @@
 #!/usr/bin/python3
-
-"""Console Module.
-This is the entry point of our command interpreter.
-"""
-
+""" Console Module """
 import cmd
 import sys
 from models.base_model import BaseModel
@@ -17,9 +13,7 @@ from models.review import Review
 
 
 class HBNBCommand(cmd.Cmd):
-
-    """ Contains the functionality for the HBNB console.
-    """
+    """ Contains the functionality for the HBNB console"""
 
     # determines prompt for interactive/non-interactive modes
     prompt = '(hbnb) ' if sys.__stdin__.isatty() else ''
@@ -37,8 +31,7 @@ class HBNBCommand(cmd.Cmd):
     }
 
     def preloop(self):
-        """Prints if isatty is false
-        """
+        """Prints if isatty is false"""
         if not sys.__stdin__.isatty():
             print('(hbnb)')
 
@@ -80,7 +73,7 @@ class HBNBCommand(cmd.Cmd):
                 if pline:
                     # check for *args or **kwargs
                     if pline[0] == '{' and pline[-1] == '}'\
-                            and type(eval(pline)) == dict:
+                            and type(eval(pline)) is dict:
                         _args = pline
                     else:
                         _args = pline.replace(',', '')
@@ -120,53 +113,26 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     def do_create(self, args):
-        """ Create an object of any class
-        """
+        """ Create an object of any class"""
         try:
-            class_name = args.split(" ")[0]
-        except IndexError:
-            pass
-
-        if not class_name:
-            # check if class_name is missing in command arguments
+            if not args:
+                raise SyntaxError()
+            arg_list = args.split(" ")
+            kw = {}
+            for arg in arg_list[1:]:
+                arg_splited = arg.split("=")
+                arg_splited[1] = eval(arg_splited[1])
+                if type(arg_splited[1]) is str:
+                    arg_splited[1] = arg_splited[1].replace(
+                        "_", " ").replace('"', '\\"')
+                kw[arg_splited[0]] = arg_splited[1]
+        except SyntaxError:
             print("** class name missing **")
-            return
-        elif class_name not in HBNBCommand.classes:
+        except NameError:
             print("** class doesn't exist **")
-            return
-
-        # Split argument into a list containing key=value pairs e.g.
-        # create Place city_id="0001" user_id="0001" name="My_little_house" etc
-        all_list = args.split(" ")
-        # create new instance of specified class
-        new_instance = eval(class_name)()
-        """
-        Iterate through remaining args in all_list and
-        split each argument at each index by the eqaulity sign,
-        then go on to typecast it into a tuple
-        and then unpack the tuple into variables key & value since
-        each arg will consist of a key & value pair.
-        """
-        for i in range(1, len(all_list)):
-            key, value = tuple(all_list[i].split("="))
-            # check if value starts with double quote to identify string
-            if value.startswith('"'):
-                # strip quotes off and replace underscore with space
-                value = value.strip('"').replace('_', ' ')
-            else:
-                # try evaluating value if it doesn't start with quote int/float
-                try:
-                    value = eval(value)
-                except Exception:
-                    print(f"** {value} could not be evaluated **")
-                    pass
-            # check if new_instance has attr of key, set value if it does
-            if hasattr(new_instance, key):
-                setattr(new_instance, key, value)
-
-        storage.new(new_instance)
-        print(new_instance.id)
+        new_instance = HBNBCommand.classes[arg_list[0]](**kw)
         new_instance.save()
+        print(new_instance.id)
 
     def help_create(self):
         """ Help information for the create method """
@@ -248,13 +214,11 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage._FileStorage__objects.items():
-                if k.split('.')[0] == args:
-                    print_list.append(str(v))
-        else:
-            for k, v in storage._FileStorage__objects.items():
+            for k, v in storage.all(HBNBCommand.classes[args]).items():
                 print_list.append(str(v))
-
+        else:
+            for k, v in storage.all().items():
+                print_list.append(str(v))
         print(print_list)
 
     def help_all(self):
